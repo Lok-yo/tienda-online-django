@@ -1,6 +1,6 @@
 # Tienda Online API — Backend con Django, DRF y JWT
 
-Proyecto de **Desarrollo para Dispositivos Inteligentes** (IDGS 9-2 — UTSLRC).
+Proyecto de **Desarrollo Web Integral** (IDGS 9-2 — UTSLRC, Prof. Jose Julian Reyes Patiño).
 API RESTful construida con **Django 6.1**, **Django REST Framework**, **SimpleJWT** y **Swagger (`drf-yasg`)**.
 
 ## Características principales (Unidad 3 - Práctica 4)
