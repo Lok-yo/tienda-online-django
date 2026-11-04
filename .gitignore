@@ -1,0 +1,32 @@
+# Entornos virtuales de Python
+venv/
+.venv/
+env/
+ENV/
+
+# Archivos compilados y caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bases de datos locales y archivos de entorno
+db.sqlite3
+db.sqlite3-journal
+.env
+.env.*
+
+# Archivos estáticos y media recolectados
+staticfiles/
+media/
+
+# Artefactos y archivos temporales de editores / sistema
+.gitignore.save
+*.swp
+*~
+.DS_Store
+.idea/
+.vscode/
+screenshots/
+docs/
+*.pdf
+*.docx

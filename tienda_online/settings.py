@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,7 +26,7 @@ SECRET_KEY = "django-insecure-0kli7b7x^egq%9y$vu2&tnb8s+1f4o@52th)+x2o6zj=s$qo9*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "testserver"]
 
 
 # Application definition
@@ -43,10 +44,13 @@ THIRD_APPS = [
     "django_filters",
     "rest_framework",
     "rest_framework_simplejwt",
+    "drf_yasg",
+    "corsheaders",
 ]
 
 OWN_APPS = [
     "products",
+    "users",
 ]
 
 INSTALLED_APPS = BASE_APPS + THIRD_APPS + OWN_APPS
@@ -54,6 +58,7 @@ INSTALLED_APPS = BASE_APPS + THIRD_APPS + OWN_APPS
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -85,14 +90,14 @@ WSGI_APPLICATION = "tienda_online.wsgi.application"
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-        'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'django_api',
-        'USER': 'root',
-        'PASSWORD': '12341234',
-        'HOST': 'localhost',
-        'PORT': '3306',
-}
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "django_api",
+        "USER": "root",
+        "PASSWORD": "12341234",
+        "HOST": "localhost",
+        "PORT": "3306",
+    }
 }
 
 
@@ -118,9 +123,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-mx"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "America/Hermosillo"
 
 USE_I18N = True
 
@@ -132,11 +137,42 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Cambio 2: Modelo de usuario personalizado con correo y matrícula
+AUTH_USER_MODEL = "users.User"
+
+# Configuración de Django REST Framework y Autenticación JWT
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
     ),
 }
+
+# Cambio 3: Configuración del tiempo de vida del token JWT (ACCESS_TOKEN_LIFETIME)
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# Configuración de Swagger (drf-yasg) para autenticación Bearer JWT
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Autenticación JWT. Formato: Bearer <access_token>",
+        }
+    },
+    "USE_SESSION_AUTH": False,
+}
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Email
