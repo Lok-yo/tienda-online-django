@@ -1,13 +1,19 @@
+import zeep
 from django.contrib.auth.hashers import make_password
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from users.models import User
-from users.serializers import UserSerializer
+from users.serializers import RegisterUserSerializer, UserSerializer
+
+COUNTRY_INFO_WSDL = (
+    "http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL"
+)
 
 
 class UserApiViewSet(ModelViewSet):
@@ -57,8 +63,8 @@ class UserApiViewSet(ModelViewSet):
 
 class UserView(APIView):
     """
-    Endpoint /api/v1/auth/me/ para obtener los datos personales del usuario autenticado
-    mediante JWT sin exponer el campo password.
+    Endpoint /api/v1/auth/me/ (Web Service propio protegido con JWT) para obtener
+    los datos personales del usuario autenticado sin exponer el campo password.
     """
 
     permission_classes = [IsAuthenticated]
@@ -74,3 +80,84 @@ class UserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class RegisterUserView(APIView):
+    """
+    Endpoint público POST /api/v1/auth/register/ para que nuevos usuarios se registren
+    desde el frontend en React.
+    """
+
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="Registrar un nuevo usuario",
+        operation_description=(
+            "Crea una cuenta de usuario aplicando hash PBKDF2 a la contraseña y "
+            "devuelve los datos registrados sin exponer el campo password."
+        ),
+        request_body=RegisterUserSerializer,
+        responses={201: UserSerializer()},
+    )
+    def post(self, request):
+        serializer = RegisterUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+class SoapCountryInfoView(APIView):
+    """
+    Endpoint GET /api/v1/soap/country/?code=MX que consume el Web Service SOAP público
+    CountryInfoService utilizando la librería zeep.
+    """
+
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="Consultar información de país vía Web Service SOAP (zeep)",
+        operation_description=(
+            "Consume el servicio SOAP público CountryInfoService.wso?WSDL mediante zeep "
+            "para obtener nombre del país, capital, código telefónico, divisa y bandera."
+        ),
+        manual_parameters=[
+            openapi.Parameter(
+                "code",
+                openapi.IN_QUERY,
+                description="Código ISO del país (ej. MX, US, ES, CO, JP)",
+                type=openapi.TYPE_STRING,
+                default="MX",
+            )
+        ],
+    )
+    def get(self, request):
+        country_code = request.query_params.get("code", "MX").strip().upper() or "MX"
+        try:
+            client = zeep.Client(wsdl=COUNTRY_INFO_WSDL)
+            info = client.service.FullCountryInfo(country_code)
+            currency = client.service.CountryCurrency(country_code)
+            return Response(
+                {
+                    "protocol": "SOAP 1.1 / WSDL (consumido desde Django con zeep)",
+                    "wsdl_url": COUNTRY_INFO_WSDL,
+                    "requested_code": country_code,
+                    "iso_code": getattr(info, "sISOCode", country_code),
+                    "country_name": getattr(info, "sName", ""),
+                    "capital_city": getattr(info, "sCapitalCity", ""),
+                    "phone_code": f"+{getattr(info, 'sPhoneCode', '')}",
+                    "continent_code": getattr(info, "sContinentCode", ""),
+                    "currency_iso": getattr(info, "sCurrencyISOCode", ""),
+                    "currency_name": getattr(currency, "sName", ""),
+                    "flag_url": getattr(info, "sCountryFlag", ""),
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as exc:
+            return Response(
+                {
+                    "error": "Error al comunicarse con el servidor SOAP externo.",
+                    "detail": str(exc),
+                    "wsdl_url": COUNTRY_INFO_WSDL,
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )

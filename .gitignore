@@ -9,11 +9,21 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Dependencias y artefactos del Frontend (React + Vite)
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+
 # Bases de datos locales y archivos de entorno
 db.sqlite3
 db.sqlite3-journal
 .env
-.env.*
+.env.local
+frontend/.env
+frontend/.env.local
 
 # Archivos estáticos y media recolectados
 staticfiles/
